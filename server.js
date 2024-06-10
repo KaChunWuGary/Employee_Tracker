@@ -74,13 +74,19 @@ async function main() {
         break;
       case 'Add Employee':
         await addEmployeePrompts();
-        await backtoMainMenu();
+        backtoMainMenu();
         break;
       case 'Update Employee Role':
+        await updateEmployeeRolePrompts();
+        backtoMainMenu();
         break;
       case 'Add Role':
+        await addRolePrompt();
+        backtoMainMenu();
         break;
       case 'Add Departments':
+        await addDepartmentPrompt();
+        backtoMainMenu();
         break;
       case 'Quit':
         db.end();
@@ -90,6 +96,7 @@ async function main() {
     }
     
   }
+  //function to go back to main menu
   async function backtoMainMenu () {
     inquirer.prompt(main_menu).then(response => handlingUserResponse1(response));
   }
@@ -104,7 +111,7 @@ async function main() {
     const [rows, fields] = await db.query('SELECT * FROM department');
     console.log(rows);
   }
-  // Function to view all roels from the database
+  // Function to view all roles from the database
   async function viewAllRoles() {
     const [rows, fields] = await db.query('SELECT * FROM employee_role');
     console.log(rows);
@@ -123,17 +130,17 @@ async function main() {
     await inquirer.prompt([
       {
         type: 'input',
-        message: 'What is the first name of the employee',
+        message: 'What is the first name of the employee?',
         name: 'first_name',
       },
       {
         type: 'input',
-        message: 'What is the last name of the employee',
+        message: 'What is the last name of the employee?',
         name: 'last_name',
       },
       {
         type: 'list',
-        message: 'What is the role of the employee',
+        message: 'What is the role of the employee?',
         name: 'employee_role',
         choices: roles,
         filter: function (input) {
@@ -142,9 +149,10 @@ async function main() {
       },
       {
         type: 'list',
-        message: 'What is name of the manager of the employee',
+        message: 'What is name of the manager of the employee?',
         name: 'employee_manager',
         choices: employees,
+        //this allows me to select the manager based on the id instead of the name
         filter: function (input) {
           return (employees.indexOf(input) + 1) 
         },
@@ -163,7 +171,113 @@ async function main() {
     }
     const query = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
     await db.query(query, [first_name, last_name, role_id, manager_id]);
+    console.log("Employee added successfully.");
   }
-}
+
+  //update employee role prompts
+  async function updateEmployeeRolePrompts(){
+    const [rows, fields] = await db.query('SELECT * FROM employee');
+    const employees = await rows.map((row) => `${row.first_name} ${row.last_name}`);
+    
+    const [rows2] = await db.query('SELECT title FROM employee_role');
+    const  roles = await rows2.map((row) => `${row.title}`);
+
+    //prompting
+    await inquirer.prompt([
+      {
+        type: 'list',
+        message: 'What is name of the employee?',
+        name: 'employee_name',
+        choices: employees,
+        //this allows me to select the employee based on the id instead of the name
+        filter: function (input) {
+          return (employees.indexOf(input) + 1) 
+        },
+      },
+      {
+        type: 'list',
+        message: 'Which role is the employee?',
+        name: 'role_employee',
+        choices: roles,
+        //this allows me to select the manager based on the id instead of the name
+        filter: function (input) {
+          return (employees.indexOf(input) + 1) 
+        },
+      }
+      
+    ]
+    ).then((answers) =>
+      updateEmployeeRole(answers.employee_name, answers.role_employee)
+    );
+  };
+  //update employee role to database
+  async function updateEmployeeRole(employee_id,role_id) {
+    const query = `UPDATE employee SET role_id = ? WHERE id = ? VALUES (?,?)`;
+    await db.query(query, [employee_id, role_id]);
+    console.log('Employee role updated.');
+  };
+
+  //prompts to add a role to the database
+  async function addRolePrompt(){
+    //getting the correct choices for the list in the prompt
+    const [rows] = await db.query('SELECT * FROM department');
+    const departments = await rows.map((row) => row.title);  
+
+    //prompting
+    await inquirer.prompt([
+      {
+        type: 'input',
+        message: 'What is the title of the role',
+        name: 'role_title',
+      },
+      {
+        type: 'number',
+        message: 'What is the salary of the role?(numbers only) ',
+        name: 'salary_amount',
+      },
+      {
+        type: 'list',
+        message: 'What department does this role belong to?',
+        name: 'role_department',
+        choices: departments,
+        filter: function (input) {
+          return (departments.indexOf(input) + 1)
+        },
+      },
+    ]
+    
+    ).then((answers) =>
+      addRole(answers.role_title, answers.salary_amount, answers.role_department)
+    );
+
+  }
+  //adds role to database
+  async function addRole(title, salary, department_id) {
+    const query = `INSERT INTO employee_role (title, salary, department_id) VALUES (?, ?, ?)`;
+    await db.query(query, [title, salary, department_id]);
+    console.log('Employee role created.');
+  }
+
+
+  //prompt to add a department to the database
+  async function addDepartmentPrompt(){
+    await inquirer.prompt([
+      {
+        type: 'input',
+        message: 'What is the department name?',
+        name: 'department_name',
+      },
+    ]
+    ).then((answers) =>
+      addDepartment(answers.department_name)
+    );
+  }
+  //adds department to database
+  async function addDepartment(department_name) {
+    const query = `INSERT INTO department (department_name) VALUES (?)`;
+    await db.query(query, [department_name]);
+    console.log('Department created.');
+  }
+} 
 
 main().catch(err => console.error(err));
