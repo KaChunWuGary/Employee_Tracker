@@ -20,9 +20,9 @@ async function main() {
       'Add Employee', 
       'Update Employee Role',
       'View All Roles',
-      'Add Roles', 
+      'Add Role', 
       'View All Departments',
-      'Add Departments',
+      'Add Department',
       'Quit'
     ],
     loop: true,
@@ -84,15 +84,16 @@ async function main() {
         await addRolePrompt();
         backtoMainMenu();
         break;
-      case 'Add Departments':
+      case 'Add Department':
         await addDepartmentPrompt();
         backtoMainMenu();
         break;
       case 'Quit':
         db.end();
-        break;
+        process.exit();
       default:
         console.log('Invalid choice.');
+        backtoMainMenu();
     }
     
   }
@@ -104,17 +105,17 @@ async function main() {
   // Function to view all employees from the database
   async function viewAllEmployees() {
     const [rows, fields] = await db.query('SELECT * FROM employee');
-    console.log(rows);
+    console.table(rows);
   }
   // Function to view all departments from the database
   async function viewAllDepartments() {
     const [rows, fields] = await db.query('SELECT * FROM department');
-    console.log(rows);
+    console.table(rows);
   }
   // Function to view all roles from the database
   async function viewAllRoles() {
     const [rows, fields] = await db.query('SELECT * FROM employee_role');
-    console.log(rows);
+    console.table(rows);
   }
 
   // Function to view all employees from the database
@@ -180,7 +181,7 @@ async function main() {
     const employees = await rows.map((row) => `${row.first_name} ${row.last_name}`);
     
     const [rows2] = await db.query('SELECT title FROM employee_role');
-    const  roles = await rows2.map((row) => `${row.title}`);
+    const roles = await rows2.map((row) => `${row.title}`);
 
     //prompting
     await inquirer.prompt([
@@ -221,27 +222,26 @@ async function main() {
   async function addRolePrompt(){
     //getting the correct choices for the list in the prompt
     const [rows] = await db.query('SELECT * FROM department');
-    const departments = await rows.map((row) => row.title);  
-
+    const department = await rows.map((row) => `${row.department_name}`);
     //prompting
     await inquirer.prompt([
       {
         type: 'input',
-        message: 'What is the title of the role',
+        message: 'What is the title of the role?',
         name: 'role_title',
       },
       {
         type: 'number',
-        message: 'What is the salary of the role?(numbers only) ',
         name: 'salary_amount',
+        message: 'What is the salary of the role(numbers only)?',
       },
       {
         type: 'list',
         message: 'What department does this role belong to?',
         name: 'role_department',
-        choices: departments,
+        choices: department,
         filter: function (input) {
-          return (departments.indexOf(input) + 1)
+          return (department.indexOf(input) + 1)
         },
       },
     ]
@@ -252,7 +252,8 @@ async function main() {
 
   }
   //adds role to database
-  async function addRole(title, salary, department_id) {
+  async function addRole(title, salary_amount , department_id) {
+    const salary = parseInt(salary_amount);
     const query = `INSERT INTO employee_role (title, salary, department_id) VALUES (?, ?, ?)`;
     await db.query(query, [title, salary, department_id]);
     console.log('Employee role created.');
