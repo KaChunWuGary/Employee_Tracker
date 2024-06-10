@@ -197,24 +197,24 @@ async function main() {
       },
       {
         type: 'list',
-        message: 'Which role is the employee?',
+        message: 'Which is the role the employee will be moved to?',
         name: 'role_employee',
         choices: roles,
-        //this allows me to select the manager based on the id instead of the name
+        //this allows me to select the role based on the id instead of the name
         filter: function (input) {
-          return (employees.indexOf(input) + 1) 
+          return (roles.indexOf(input) + 1) 
         },
       }
       
     ]
     ).then((answers) =>
-      updateEmployeeRole(answers.employee_name, answers.role_employee)
+        updateEmployeeRole(answers.employee_name, answers.role_employee)
     );
   };
   //update employee role to database
   async function updateEmployeeRole(employee_id,role_id) {
-    const query = `UPDATE employee SET role_id = ? WHERE id = ? VALUES (?,?)`;
-    await db.query(query, [employee_id, role_id]);
+    const query = `UPDATE employee SET role_id = ? WHERE id = ?`;
+    await db.query(query, [role_id, employee_id]);
     console.log('Employee role updated.');
   };
 
